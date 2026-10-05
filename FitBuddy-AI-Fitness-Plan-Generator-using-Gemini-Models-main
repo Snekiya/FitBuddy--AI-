@@ -1,0 +1,142 @@
+[12:12 PM, 9/30/2026] sweetlinmini: def generate_personalized_workout_plan(user_input: dict) -> str:
+    """
+    Generate a personalized workout plan based on the user's fitness goal
+    and preferences.
+    """
+
+    goal = user_input.get("goal", "general fitness")
+    intensity = user_input.get("intensity", "moderate")
+
+    prompt = f"""
+    Create a personalized 7-day workout plan for someone with the goal of
+    {goal}, and prefer {intensity} intensity workouts.
+
+    Each day must include:
+    - A warm-up (5-10 minutes)
+    - Main workout (targeted exercises, sets & reps)
+    - Cooldown or recovery tip
+
+    Format:
+    Day 1:
+    Warm-up: ...
+    Main Workout: ...
+    Cooldown: ...
+    """
+
+    try:
+        response = model.generate_content(prompt)
+        return response.text
+    except Exception as e:
+        return f"Error: {e}"
+[12:19 PM, 9/30/2026] sweetlinmini: def update_workout_plan(original_plan: str, user_feedback: str) -> str:
+    """
+    Use Gemini 1.5 Pro to update the workout plan based on user feedback.
+    """
+    prompt = f"""
+You are a professional fitness trainer assistant.
+
+Here's the original 7-day workout plan:
+{original_plan}
+
+User Feedback:
+"{user_feedback}"
+
+Based on the feedback, revise the relevant parts of the workout plan. Keep the format and rest of the plan unchanged if not needed.
+"""
+    try:
+        response = model.generate_content(prompt)
+        return response.text.strip()
+    except Exception as e:
+        return f"Error updating plan: {e}"
+[12:22 PM, 9/30/2026] sweetlinmini: def save_user(user_id: int, name: str, age: int, weight: float, goal: str, intensity: str):[span_0](start_span)[span_0](end_span)
+    db = SessionLocal()[span_1](start_span)[span_1](end_span)
+    existing = db.query(User).filter_by(id=user_id).first()[span_2](start_span)[span_2](end_span)
+    if existing:[span_3](start_span)[span_3](end_span)
+        # Update existing user info
+        existing.name = name[span_4](start_span)[span_4](end_span)
+        existing.age = age[span_5](start_span)[span_5](end_span)
+        existing.weight = weight[span_6](start_span)[span_6](end_span)
+        existing.goal = goal[span_7](start_span)[span_7](end_span)
+        existing.intensity = intensity[span_8](start_span)[span_8](end_span)
+    else:[span_9](start_span)[span_9](en…
+[12:24 PM, 9/30/2026] sweetlinmini: # Update the plan based on feedback[span_0](start_span)[span_0](end_span)
+def update_plan(user_id: int, updated_text: str)[12:24 PM, 9/30/2026] sweetlinmini: :[span_1](start_span)[span_1](end_span)
+    db = SessionLocal()[span_2](start_span)[span_2](end_span)
+    workout = db.query(WorkoutPlan).filter_by(user_id=user_id).first()[span_3](start_span)[span_3](end_span)
+    if workout:[span_4](start_span)[span_4](end_span)
+        workout.updated_plan = updated_text[span_5](start_span)[span_5](end_span)
+        db.commit()[span_6](start_span)[span_6](end_span)
+    db.close()[span_7](start_span)[span_7](end_span)
+
+
+# Fetch the original plan for a user[span_8](start_span)[span_8](end_span)
+def get_original_plan(user_id: int):[span_9](start_span)[span_9](end_span)
+    db = SessionLocal()[span_10](start_span)[span_10](end_span)
+    plan = db.query(WorkoutPlan).filter(WorkoutPlan.user_id == user_id).first()[span_11](start_span)[span_11](end_span)
+    return plan.original_plan if plan else None[span_12](start_span)[span_12](end_span)
+
+
+def get_user(user_id: int):[span_13](start_span)[span_13](end_span)
+    db = SessionLocal()[span_14](start_span)[span_14](end_span)
+    return db.query(User).filter(User.id == user_id).first()[span_15](start_span)[span_15](end_span)
+[12:25 PM, 9/30/2026] sweetlinmini: # 8. Web: View all users & their plans[span_0](start_span)[span_0](end_span)
+@router.get("/view-all-users", response_class=HTMLResponse)[span_1](start_span)[span_1](end_span)
+def view_all_users(request: Request):[span_2](start_span)[span_2](end_span)
+    db = SessionLocal()[span_3](start_span)[span_3](end_span)
+    users = db.query(User).all()[span_4](start_span)[span_4](end_span)
+    user_data = [][span_5](start_span)[span_5](end_span)
+    for user in users:[span_6](start_span)[span_6](end_span)
+        plan = db.query(WorkoutPlan).filter(WorkoutPlan.user_id == user.id).first()[span_7](start_span)[span_7](end_span)
+        user_data.append({[span_8](start_span)[span_8](end_span)
+            "id": user.id,[span_9](start_span)[span_9](end_span)
+            "n…
+[12:27 PM, 9/30/2026] sweetlinmini: # 1. API: Generate workout using Gemini Pro[span_0](start_span)[span_0](end_span)
+@router.post("/generate-workout/gemini")[span_1](start_span)[span_1](end_span)
+async def generate_gemini_workout(request: WorkoutRequest):[span_2](start_span)[span_2](end_span)
+    try:[span_3](start_span)[span_3](end_span)
+        result = generate_workout_gemini([span_4](start_span)[span_4](end_span)
+            "goal": request.goal,[span_5](start_span)[span_5](end_span)
+            "intensity": request.intensity[span_6](start_span)[span_6](end_span)
+        )[span_7](start_span)[span_7](end_span)
+        return {"model": "gemini pro", "workout_plan": result}[span_8](start_span)[span_8](end_span)
+    except Exception as e:[span_9](start_span)[span_9](end_span)
+        raise HTTPException(status_code=500, detail=str(e))[span_10](start_span)[span_10](end_span)
+# 2. API: Generate nutrition tip using Gemini Flash[span_0](start_span)[span_0](end_span)
+@router.get("/nutrition-tip")[span_1](start_span)[span_1](end_span)
+def get_flash_tip(goal: str):[span_2](start_span)[span_2](end_span)
+    tip = generate_nutrition_tip_with_flash(goal)[span_3](start_span)[span_3](end_span)
+    return {"goal": goal, "nutrition_tip": tip}[span_4](start_span)[span_4](end_span)
+# 4. API: Update workout plan based on user feedback[span_0](start_span)[span_0](end_span)
+@router.post("/update-plan/{user_id}", response_model=dict)[span_1](start_span)[span_1](end_span)
+def update_user_plan(user_id: int, data: FeedbackRequest):[span_2](start_span)[span_2](end_span)
+    original = get_original_plan(user_id)[span_3](start_span)[span_3](end_span)
+    if not original:[span_4](start_span)[span_4](end_span)
+        return {"error": "Original plan not found for this user."}[span_5](start_span)[span_5](end_span)
+    updated = update_workout_plan(original, data.feedback)[span_6](start_span)[span_6](end_span)
+    update_plan(user_id, updated)[span_7](start_span)[span_7](end_span)
+    return {"updated_plan": updated}[span_8](start_span)[span_8](end_span)
+
+return templates.TemplateResponse("result.html", {
+    "request": request,
+    "username": username,
+    "user_id": user_id,
+    "age": age,
+    "weight": weight,
+    "goal": goal,
+    "intensity": intensity,
+    "workout_plan": plan,
+    "nutrition_tip": nutrition_tip
+})
+
+{% for user in users %}
+<tr>
+    <td>{{ user.id }}</td>
+    <td>{{ user.name }}</td>
+    <td>{{ user.age }}</td>
+    <td>{{ user.weight }}</td>
+    <td>{{ user.goal }}</td>
+    <td>{{ user.intensity }}</td>
+    <td><pre>{{ user.original_plan }}</pre></td>
+    <td><pre>{{ user.updated_plan }}</pre></td>
+</tr>
+{% endfor %}
